@@ -5,10 +5,4 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.baasbox.android.pinbox.login.LoginActivity"
-    tools:ignore="MergeRootFrame" /><!--<fragment
-        android:name="com.baasbox.android.pinbox.login.LoginFragment"
-        android:id="@+id/Login"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:layout="@layout/fragment_login" />
-</FrameLayout>/-->
+    tools:ignore="MergeRootFrame" />
