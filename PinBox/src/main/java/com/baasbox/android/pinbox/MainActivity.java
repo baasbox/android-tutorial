@@ -15,7 +15,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.baasbox.android.BAASBox;
 import com.baasbox.android.BaasAccount;
+import com.baasbox.android.BaasResult;
 import com.baasbox.android.pinbox.common.BaseActivity;
 import com.baasbox.android.pinbox.login.LoginActivity;
 
@@ -43,10 +45,7 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         super.onCreate(savedInstanceState);
         //todo check login
         if (!BaasAccount.isUserLoggedIn(PinBox.getBaasBox())) {
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            finish();
+            startLoginScreen();
             return;
         }
         setContentView(R.layout.activity_main);
@@ -86,6 +85,13 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         }
     }
 
+    private void startLoginScreen() {
+        // start login screen as new task
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -100,11 +106,27 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
+        boolean handled = true;
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
+        switch (id) {
+            case R.id.action_settings:
+                break;
+            case R.id.action_logout:
+                //todo
+                BaasAccount.logout(PinBox.getBaasBox(), this, new BAASBox.BAASHandler<Void, MainActivity>() {
+                    @Override
+                    public void handle(BaasResult<Void> result, MainActivity mainActivity) {
+                        if (result.isSuccess()) {
+                            mainActivity.startLoginScreen();
+                        }
+                    }
+                });
+                break;
+            default:
+                handled = false;
+
         }
-        return super.onOptionsItemSelected(item);
+        return handled || super.onOptionsItemSelected(item);
     }
 
     @Override
