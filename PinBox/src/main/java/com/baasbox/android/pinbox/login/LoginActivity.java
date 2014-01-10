@@ -1,10 +1,19 @@
 package com.baasbox.android.pinbox.login;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
+import com.baasbox.android.BAASBox;
+import com.baasbox.android.BaasAccount;
+import com.baasbox.android.BaasDisposer;
+import com.baasbox.android.BaasPerson;
+import com.baasbox.android.BaasResult;
+import com.baasbox.android.pinbox.MainActivity;
+import com.baasbox.android.pinbox.PinBox;
 import com.baasbox.android.pinbox.R;
 import com.baasbox.android.pinbox.common.BaseActivity;
 
@@ -12,8 +21,6 @@ import com.baasbox.android.pinbox.common.BaseActivity;
  * Created by Andrea Tortorella on 26/12/13.
  */
 public class LoginActivity extends BaseActivity {
-
-    private final static String LOGIN_FRAGMENT_TAG = "LOGIN_TAG";
 
     /**
      * The default email to populate the email field with.
@@ -29,16 +36,19 @@ public class LoginActivity extends BaseActivity {
 
     private LoginFragment mLoginFragment;
 
+    private BAASBox box;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .add(LoginFragment.newInstance(), LOGIN_FRAGMENT_TAG)
-                    .commit();
-        }
+        box = PinBox.getBaasBox();
+//        if (savedInstanceState == null) {
+//            getSupportFragmentManager()
+//                    .beginTransaction()
+//                    .add(LoginFragment.newInstance(), LOGIN_FRAGMENT_TAG)
+//                    .commit();
+//        }
     }
 
     @Override
@@ -69,10 +79,37 @@ public class LoginActivity extends BaseActivity {
         return handled || super.onOptionsItemSelected(item);
     }
 
+    protected void completeLogin() {
+        mLoginFragment.showLoginProgress(false, null);
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    protected void failLogin() {
+        Toast.makeText(this, "Failed", Toast.LENGTH_LONG).show();
+    }
+
+    private static BAASBox.BAASHandler<Void, LoginActivity> signupHandler = new BAASBox.BAASHandler<Void, LoginActivity>() {
+        @Override
+        public void handle(BaasResult<Void> result, LoginActivity loginActivity) {
+            if (result.isSuccess()) {
+                loginActivity.completeLogin();
+            } else {
+                loginActivity.failLogin();
+            }
+        }
+    };
+
     private class ActionCallbacks implements LoginFragment.OnAttemptLoginListener {
         @Override
         public void onAttemptLogin(String username, String password, String email) {
-
+            BaasAccount account = new BaasAccount(username, password);
+            if (email != null) {
+                account.getScope(BaasPerson.Scope.PRIVATE).putString("email", email);
+            }
+            BaasDisposer disposer = account.signup(box, LoginActivity.this, signupHandler);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.baasbox.android.pinbox;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -14,7 +15,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.baasbox.android.BaasAccount;
 import com.baasbox.android.pinbox.common.BaseActivity;
+import com.baasbox.android.pinbox.login.LoginActivity;
 
 import java.util.Locale;
 
@@ -38,6 +41,14 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //todo check login
+        if (!BaasAccount.isUserLoggedIn(PinBox.getBaasBox())) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+            return;
+        }
         setContentView(R.layout.activity_main);
 
         // Set up the action bar.

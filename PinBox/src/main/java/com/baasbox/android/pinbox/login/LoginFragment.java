@@ -57,15 +57,16 @@ public class LoginFragment extends BaseFragment {
         final Bundle data = savedInstanceState == null
                 ? getArguments()
                 : savedInstanceState;
-
-        mUsername = data.getString(ARG_USERNAME);
-        mEmail = data.getString(ARG_EMAIL);
-        mPassword = data.getString(KEY_PASSWORD);
+        if (data != null) {
+            mUsername = data.getString(ARG_USERNAME);
+            mEmail = data.getString(ARG_EMAIL);
+            mPassword = data.getString(KEY_PASSWORD);
+        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        final View v = inflater.inflate(R.layout.fragment_login, container, false);
+        final View v = inflater.inflate(R.layout.fragment_login, container, true);
 
         mLoginFormView = v.findViewById(R.id.login_form);
         mLoginStatusView = v.findViewById(R.id.login_status);
