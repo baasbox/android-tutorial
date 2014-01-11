@@ -8,22 +8,26 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.baasbox.android.BAASBox;
 import com.baasbox.android.BaasAccount;
 import com.baasbox.android.BaasResult;
+import com.baasbox.android.RequestToken;
 import com.baasbox.android.pinbox.common.BaseActivity;
+import com.baasbox.android.pinbox.gallery.GalleryFragment;
 import com.baasbox.android.pinbox.login.LoginActivity;
+import com.baasbox.android.pinbox.profile.ProfileFragment;
 
 import java.util.Locale;
 
 public class MainActivity extends BaseActivity implements ActionBar.TabListener {
+    private final static String TOKEN = "TOKEN";
+
+    private final static int TABS_COUNT = 2;
+    private final static int GALLERY_TAB = 0;
+    private final static int PROFILE_TAB = 1;
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -40,6 +44,8 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
      */
     ViewPager mViewPager;
 
+    private RequestToken logout;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,7 +55,6 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
             return;
         }
         setContentView(R.layout.activity_main);
-
         // Set up the action bar.
         final ActionBar actionBar = getSupportActionBar();
         actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
@@ -93,10 +98,9 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         finish();
     }
 
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
@@ -113,14 +117,7 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
                 break;
             case R.id.action_logout:
                 //todo
-                BaasAccount.logout(PinBox.getBaasBox(), this, new BAASBox.BAASHandler<Void, MainActivity>() {
-                    @Override
-                    public void handle(BaasResult<Void> result, MainActivity mainActivity) {
-                        if (result.isSuccess()) {
-                            mainActivity.startLoginScreen();
-                        }
-                    }
-                });
+                logout = BaasAccount.logout(PinBox.getBaasBox(), this, logoutHandler);
                 break;
             default:
                 handled = false;
@@ -128,6 +125,28 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         }
         return handled || super.onOptionsItemSelected(item);
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        PinBox.getBaasBox().suspend(TOKEN, logout);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        logout = PinBox.getBaasBox().resume(TOKEN, this, logoutHandler);
+    }
+
+    private final static BAASBox.BAASHandler<Void, MainActivity> logoutHandler = new BAASBox.BAASHandler<Void, MainActivity>() {
+        @Override
+        public void handle(BaasResult<Void> result, MainActivity mainActivity) {
+            if (result.isSuccess()) {
+                mainActivity.startLoginScreen();
+            }
+            mainActivity.logout = null;
+        }
+    };
 
     @Override
     public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
@@ -156,64 +175,32 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
 
         @Override
         public Fragment getItem(int position) {
-            // getItem is called to instantiate the fragment for the given page.
-            // Return a PlaceholderFragment (defined as a static inner class below).
-            return PlaceholderFragment.newInstance(position + 1);
+            switch (position) {
+                case GALLERY_TAB:
+                    return GalleryFragment.newInstance();
+                case PROFILE_TAB:
+                    return ProfileFragment.newInstance();
+                default:
+                    return null;
+            }
         }
 
         @Override
         public int getCount() {
-            // Show 3 total pages.
-            return 3;
+            // Show 2 total pages.
+            return TABS_COUNT;
         }
 
         @Override
         public CharSequence getPageTitle(int position) {
             Locale l = Locale.getDefault();
             switch (position) {
-                case 0:
-                    return getString(R.string.title_section1).toUpperCase(l);
-                case 1:
-                    return getString(R.string.title_section2).toUpperCase(l);
-                case 2:
-                    return getString(R.string.title_section3).toUpperCase(l);
+                case GALLERY_TAB:
+                    return getString(R.string.title_gallery).toUpperCase(l);
+                case PROFILE_TAB:
+                    return getString(R.string.title_profile).toUpperCase(l);
             }
             return null;
-        }
-    }
-
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
-        private static final String ARG_SECTION_NUMBER = "section_number";
-
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
-            Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
-            return fragment;
-        }
-
-        public PlaceholderFragment() {
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-            textView.setText(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)));
-            return rootView;
         }
     }
 

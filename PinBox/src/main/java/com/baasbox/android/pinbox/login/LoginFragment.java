@@ -6,6 +6,7 @@ import android.annotation.TargetApi;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -34,7 +35,7 @@ public class LoginFragment extends BaseFragment {
     }
 
     public static interface OnAttemptLoginListener {
-        public void onAttemptLogin(String username, String password, String email);
+        public void onAttemptLogin(boolean newUser, String username, String password, String email);
     }
 
     private String mEmail;
@@ -81,7 +82,7 @@ public class LoginFragment extends BaseFragment {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == R.id.login || actionId == EditorInfo.IME_NULL) {
-                    attemptLogin();
+                    attemptLogin(false);
                     return true;
                 }
                 return false;
@@ -91,10 +92,15 @@ public class LoginFragment extends BaseFragment {
         v.findViewById(R.id.sign_in_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                attemptLogin();
+                attemptLogin(false);
             }
         });
-
+        v.findViewById(R.id.register_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                attemptLogin(true);
+            }
+        });
         return v;
     }
 
@@ -106,11 +112,8 @@ public class LoginFragment extends BaseFragment {
         outState.putString(mPassword, KEY_PASSWORD);
     }
 
-    void attemptLogin() {
-        //reset errors
-        mEmailView.setError(null);
-        mUsernameView.setError(null);
-        mPasswordView.setError(null);
+
+    void attemptLogin(boolean registerNewUser) {
 
         mEmail = mEmailView.getText().toString();
         mUsername = mUsernameView.getText().toString();
@@ -119,7 +122,7 @@ public class LoginFragment extends BaseFragment {
         boolean cancel = false;
         View focusView = null;
 
-        if (!TextUtils.isEmpty(mEmail)) {
+        if (registerNewUser && (!TextUtils.isEmpty(mEmail))) {
             if (!Patterns.EMAIL_ADDRESS.matcher(mEmail).matches()) {
                 mEmailView.setError(getString(R.string.error_invalid_email));
                 focusView = mEmailView;
@@ -151,14 +154,14 @@ public class LoginFragment extends BaseFragment {
             // There was an error; don't login and focus the error
             focusView.requestFocus();
         } else if (mAttemptLoginListener != null) {
-            mAttemptLoginListener.onAttemptLogin(mUsername, mPassword, mEmail);
+            mAttemptLoginListener.onAttemptLogin(registerNewUser, mUsername, mPassword, mEmail);
         }
     }
+
 
     public void setAttemptLoginListener(OnAttemptLoginListener listener) {
         mAttemptLoginListener = listener;
     }
-
 
     public void showLoginProgress(final boolean show, String message) {
         if (show) {
@@ -168,6 +171,7 @@ public class LoginFragment extends BaseFragment {
     }
 
     private void showProgress(final boolean show) {
+        Log.d("TEST", "IS showing " + show);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
             showProgressModern(show);
         } else {
