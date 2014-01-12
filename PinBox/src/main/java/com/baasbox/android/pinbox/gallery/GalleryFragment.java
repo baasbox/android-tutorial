@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -22,6 +23,11 @@ import java.io.IOException;
 
 public class GalleryFragment extends BaseFragment {
     private final static String SAVE_PICTURE_URI = "save_picture";
+    private final static int IMPORT_IMAGE_REQUEST = 2;
+
+    public static interface OnImageChoosen{
+        public void onImageChoosen(Uri imageUri);
+    }
 
     public static GalleryFragment newInstance() {
         GalleryFragment fragment = new GalleryFragment();
@@ -29,6 +35,7 @@ public class GalleryFragment extends BaseFragment {
     }
 
     private Uri mSavePictureUri;
+    private OnImageChoosen mImageChoiceListener;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,7 +63,7 @@ public class GalleryFragment extends BaseFragment {
         switch (item.getItemId()) {
             case R.id.share:
                 mSavePictureUri = Utils.generateUniqueFileUri();
-                Intents.importPicture(this, R.id.GALLERY_IMPORT_PICTURE, getString(R.string.import_picture), mSavePictureUri);
+                Intents.importPicture(this, IMPORT_IMAGE_REQUEST, getString(R.string.import_picture), mSavePictureUri);
                 break;
             default:
                 handled = false;
@@ -72,18 +79,18 @@ public class GalleryFragment extends BaseFragment {
         }
     }
 
+    public void setOnImageChoosenListener(OnImageChoosen imageChoosen){
+        mImageChoiceListener = imageChoosen;
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == R.id.GALLERY_IMPORT_PICTURE) {
+        if (requestCode == IMPORT_IMAGE_REQUEST) {
             Uri imageUri = Intents.processImageResult(resultCode, data, mSavePictureUri);
-
-            if (imageUri != null) {
-                try {
-                    Bitmap bmp = MediaStore.Images.Media.getBitmap(getActivity().getContentResolver(), imageUri);
-
-                } catch (IOException e) {
-                    Toast.makeText(getActivity(), "Failed", Toast.LENGTH_LONG).show();
+            if (imageUri!=null){
+                if (mImageChoiceListener!=null){
+                    mImageChoiceListener.onImageChoosen(imageUri);
                 }
             }
         }

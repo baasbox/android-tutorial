@@ -74,7 +74,8 @@ public class Intents {
         galleryIntent.setAction(Intent.ACTION_GET_CONTENT);
 
         final Intent chooser = Intent.createChooser(galleryIntent, message);
-        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, cameraApps.toArray(new Parcelable[cameraApps.size()]));
+
+        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, cameraIntents.toArray(new Parcelable[cameraApps.size()]));
         return chooser;
     }
 
