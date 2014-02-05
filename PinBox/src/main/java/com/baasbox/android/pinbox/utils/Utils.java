@@ -1,7 +1,6 @@
 package com.baasbox.android.pinbox.utils;
 
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -17,6 +16,11 @@ import java.util.UUID;
  * Created by eto on 10/01/14.
  */
 public class Utils {
+    private final static String LOG_TAG = "LOGTAG";
+
+    public static void logStep(String text) {
+        Log.d(LOG_TAG, text);
+    }
 
     public static Uri generateUniqueFileUri() {
         File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);

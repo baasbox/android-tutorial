@@ -6,14 +6,8 @@ import android.support.v4.app.Fragment;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
-
-import com.baasbox.android.BAASBox;
-import com.baasbox.android.BaasAccount;
-import com.baasbox.android.BaasPerson;
-import com.baasbox.android.BaasResult;
-import com.baasbox.android.RequestToken;
+import com.baasbox.android.*;
 import com.baasbox.android.pinbox.MainActivity;
-import com.baasbox.android.pinbox.PinBox;
 import com.baasbox.android.pinbox.R;
 import com.baasbox.android.pinbox.common.BaseActivity;
 
@@ -21,7 +15,6 @@ import com.baasbox.android.pinbox.common.BaseActivity;
  * Created by Andrea Tortorella on 26/12/13.
  */
 public class LoginActivity extends BaseActivity {
-    private final String SUSPENDED_SIGNUP = "suspended_signup";
     private final String SUSPENDED_LOGIN = "suspended_login";
     /**
      * The default email to populate the email field with.
@@ -37,23 +30,18 @@ public class LoginActivity extends BaseActivity {
 
     private LoginFragment mLoginFragment;
 
-    private BAASBox box;
 
-    private RequestToken signupRequest;
     private RequestToken loginRequest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (savedInstanceState != null) {
+            loginRequest = savedInstanceState.getParcelable(SUSPENDED_LOGIN);
+        }
         setContentView(R.layout.activity_login);
-        box = PinBox.getBaasBox();
-//
-//        if (savedInstanceState!=null){
-//            signupRequest = savedInstanceState.getParcelable(SUSPENDED_SIGNUP);
-//            loginRequest = savedInstanceState.getParcelable(SUSPENDED_LOGIN);
-//        }
-
     }
+
 
     @Override
     public void onAttachFragment(Fragment fragment) {
@@ -67,28 +55,29 @@ public class LoginActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        signupRequest = PinBox.getBaasBox().resume(SUSPENDED_SIGNUP, this, signupHandler);
-        loginRequest = PinBox.getBaasBox().resume(SUSPENDED_LOGIN, this, signupHandler);
-        if (signupRequest != null || loginRequest != null) {
+        boolean show = false;
+        if (loginRequest != null) {
+            loginRequest.resume(handler);
+            show = true;
+        }
+
+        if (show) {
             mLoginFragment.showLoginProgress(true, "Signing in...");
         }
+
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (signupRequest != null) {
-            PinBox.getBaasBox().suspend(SUSPENDED_SIGNUP, signupRequest);
-        }
         if (loginRequest != null) {
-            PinBox.getBaasBox().suspend(SUSPENDED_LOGIN, loginRequest);
+            loginRequest.suspend();
         }
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putParcelable(SUSPENDED_SIGNUP, signupRequest);
         outState.putParcelable(SUSPENDED_LOGIN, loginRequest);
     }
 
@@ -119,24 +108,22 @@ public class LoginActivity extends BaseActivity {
         finish();
     }
 
-    protected void failLogin(String reason) {
-        Toast.makeText(this, "Failed " + reason, Toast.LENGTH_LONG).show();
+    protected void failLogin(BaasException reason) throws RuntimeException {
+        Toast.makeText(this, "Failed " + reason.getMessage(), Toast.LENGTH_LONG).show();
+        mLoginFragment.showLoginProgress(false, null);
     }
 
-    private static BAASBox.BAASHandler<Void, LoginActivity> signupHandler = new BAASBox.BAASHandler<Void, LoginActivity>() {
+
+    private final BaasHandler<BaasUser> handler = new BaasHandler<BaasUser>() {
         @Override
-        public void handle(BaasResult<Void> result, LoginActivity loginActivity) {
+        public void handle(BaasResult<BaasUser> result) {
             if (result.isSuccess()) {
-                loginActivity.completeLogin();
+                completeLogin();
             } else {
-                loginActivity.failLogin(result.error().getMessage());
+                failLogin(result.error());
             }
-            if (loginActivity.signupRequest != null) {
-                loginActivity.signupRequest = null;
-            }
-            if (loginActivity.loginRequest != null) {
-                loginActivity.loginRequest = null;
-            }
+            loginRequest = null;
+
         }
     };
 
@@ -145,14 +132,17 @@ public class LoginActivity extends BaseActivity {
         @Override
         public void onAttemptLogin(boolean newUser, String username, String password, String email) {
             mLoginFragment.showLoginProgress(true, "Signin...");
-            BaasAccount account = new BaasAccount(username, password);
+
+            BaasUser user = BaasUser.withUserName(username);
+            user.setPassword(password);
             if (newUser) {
                 if (email != null) {
-                    account.getScope(BaasPerson.Scope.PRIVATE).putString("email", email);
+                    user.getScope(BaasUser.Scope.PRIVATE).putString("email", email);
                 }
-                signupRequest = account.signup(box, LoginActivity.this, signupHandler);
+
+                loginRequest = user.signup(handler);
             } else {
-                loginRequest = account.login(box, LoginActivity.this, signupHandler);
+                loginRequest = user.login(handler);
             }
         }
     }

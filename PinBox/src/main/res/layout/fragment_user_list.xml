@@ -3,14 +3,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="vertical" android:layout_width="match_parent"
               android:layout_height="match_parent">
-    <EditText
-            android:id="@+id/input_title"
-            android:hint="Title"
+    <ListView
+            android:id="@+id/user_list"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-    <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/image_preview"/>
-
+            android:layout_height="match_parent"></ListView>
 </LinearLayout>

@@ -12,8 +12,8 @@ import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageView;
-
 import com.baasbox.android.pinbox.R;
 
 import java.io.IOException;
@@ -26,12 +26,13 @@ public class UploadFragment extends DialogFragment {
     private final static String IMAGE_URI = "IMAGE_URI";
 
     private ImageView mImagePreview;
+    private EditText mImageTitle;
     private Bitmap mBitmap;
     private Uri mImageUri;
     private OnUploadConfirmedListener mListener;
 
     public static interface OnUploadConfirmedListener {
-        public void onUploadConfirmed(Uri imageUri);
+        public void onUploadConfirmed(Uri imageUri, String title);
     }
 
     public void setOnUploadConfirmedListener(OnUploadConfirmedListener listener){
@@ -59,6 +60,7 @@ public class UploadFragment extends DialogFragment {
         LayoutInflater inflater = LayoutInflater.from(getActivity());
         final View v = inflater.inflate(R.layout.fragment_add_picture,null);
         mImagePreview = (ImageView)v.findViewById(R.id.image_preview);
+        mImageTitle = (EditText) v.findViewById(R.id.input_title);
         Bitmap bmp = loadBitmap(mImageUri);
         mImagePreview.setImageBitmap(bmp);
         builder.setView(v);
@@ -73,7 +75,8 @@ public class UploadFragment extends DialogFragment {
             switch (which){
                 case DialogInterface.BUTTON_POSITIVE:
                     if (mListener!=null){
-                        mListener.onUploadConfirmed(mImageUri);
+                        String title = mImageTitle.getText().toString();
+                        mListener.onUploadConfirmed(mImageUri, title);
                     }
                     break;
             }

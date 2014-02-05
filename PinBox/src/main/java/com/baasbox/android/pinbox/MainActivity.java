@@ -3,7 +3,6 @@ package com.baasbox.android.pinbox;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -12,29 +11,28 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.view.Menu;
 import android.view.MenuItem;
-
-import com.baasbox.android.BAASBox;
-import com.baasbox.android.BaasAccount;
-import com.baasbox.android.BaasFile;
+import com.baasbox.android.BaasHandler;
 import com.baasbox.android.BaasResult;
+import com.baasbox.android.BaasUser;
 import com.baasbox.android.RequestToken;
 import com.baasbox.android.pinbox.common.BaseActivity;
 import com.baasbox.android.pinbox.gallery.GalleryFragment;
 import com.baasbox.android.pinbox.gallery.UploadFragment;
 import com.baasbox.android.pinbox.login.LoginActivity;
 import com.baasbox.android.pinbox.profile.ProfileFragment;
-import com.baasbox.android.pinbox.utils.Utils;
+import com.baasbox.android.pinbox.service.UploadImageService;
+import com.baasbox.android.pinbox.users.UserListFragment;
 
-import java.io.File;
 import java.util.Locale;
 
 public class MainActivity extends BaseActivity implements ActionBar.TabListener {
     private final static String TOKEN = "TOKEN";
     private final static String UPLOAD = "UPLOAD_TOKEN";
 
-    private final static int TABS_COUNT = 2;
+    private final static int TABS_COUNT = 3;
     private final static int GALLERY_TAB = 0;
     private final static int PROFILE_TAB = 1;
+    private final static int USERS_TAB = 2;
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -58,10 +56,13 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //todo check login
-        if (!BaasAccount.isUserLoggedIn(PinBox.getBaasBox())) {
+        if (BaasUser.current() == null || !BaasUser.current().isAuthentcated()) {
             startLoginScreen();
-            return;
         }
+//        if (!BaasAccount.isUserLoggedIn(PinBox.getBaasBox())) {
+//            startLoginScreen();
+//            return;
+//        }
         setContentView(R.layout.activity_main);
         // Set up the action bar.
         final ActionBar actionBar = getSupportActionBar();
@@ -111,22 +112,26 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         } else if(fragment instanceof UploadFragment){
             ((UploadFragment) fragment).setOnUploadConfirmedListener(new UploadFragment.OnUploadConfirmedListener() {
                 @Override
-                public void onUploadConfirmed(Uri imageUri) {
-                    File f = Utils.getMediaFile(MainActivity.this, imageUri);
-                    if (f!=null){
-                    uploadToken=BaasFile.save(PinBox.getBaasBox(),null,f,MainActivity.this,0,uploadHander);
-                    }
-                };
+                public void onUploadConfirmed(Uri imageUri, String title) {
+                    UploadImageService.saveAnduploadImage(MainActivity.this, imageUri, title);
+                }
             });
+//            ((UploadFragment) fragment).setOnUploadConfirmedListener(new UploadFragment.OnUploadConfirmedListener() {
+//                @Override
+//                public void onUploadConfirmed(Uri imageUri,String title) {
+//                    UploadImageService.uploadImage(MainActivity.this,imageUri,title);
+//
+//                };
+//            });
         }
-    } 
-    private static final BAASBox.BAASHandler<BaasFile,MainActivity>
-            uploadHander = new BAASBox.BAASHandler<BaasFile, MainActivity>() {
-        @Override
-        public void handle(BaasResult<BaasFile> baasFileBaasResult, MainActivity mainActivity) {
+    }
 
-        }
-    };
+
+    void onLogout() {
+        PinBox.getSyncTimeManager().resetSyncTime();
+        getContentResolver().delete(Contract.Image.CONTENT_URI, null, null);
+    }
+
     private void startLoginScreen() {
         // start login screen as new task
         Intent intent = new Intent(this, LoginActivity.class);
@@ -151,10 +156,11 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         int id = item.getItemId();
         switch (id) {
             case R.id.action_settings:
+//                startActivity(new Intent(this, TestActivity.class));
                 break;
             case R.id.action_logout:
                 //todo
-                logout = BaasAccount.logout(PinBox.getBaasBox(), this, logoutHandler);
+                logout = BaasUser.current().logout(logoutHandler);
                 break;
             default:
                 handled = false;
@@ -166,26 +172,28 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
     @Override
     protected void onPause() {
         super.onPause();
-        PinBox.getBaasBox().suspend(TOKEN, logout);
-        PinBox.getBaasBox().suspend(UPLOAD,uploadToken);
+        if (logout != null)
+            logout.suspend();
+        if (uploadToken != null)
+            uploadToken.suspend();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        logout = PinBox.getBaasBox().resume(TOKEN, this, logoutHandler);
-        uploadToken=PinBox.getBaasBox().resume(UPLOAD,this,uploadHander);
+        if (logout != null) logout.resume(logoutHandler);
     }
 
-    private final static BAASBox.BAASHandler<Void, MainActivity> logoutHandler = new BAASBox.BAASHandler<Void, MainActivity>() {
+    private final BaasHandler<Void> logoutHandler = new BaasHandler<Void>() {
         @Override
-        public void handle(BaasResult<Void> result, MainActivity mainActivity) {
+        public void handle(BaasResult<Void> result) {
             if (result.isSuccess()) {
-                mainActivity.startLoginScreen();
+                onLogout();
             }
-            mainActivity.logout = null;
+            logout = null;
         }
     };
+
 
     @Override
     public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
@@ -219,6 +227,8 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
                     return GalleryFragment.newInstance();
                 case PROFILE_TAB:
                     return ProfileFragment.newInstance();
+                case USERS_TAB:
+                    return new UserListFragment();
                 default:
                     return null;
             }
@@ -238,6 +248,8 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
                     return getString(R.string.title_gallery).toUpperCase(l);
                 case PROFILE_TAB:
                     return getString(R.string.title_profile).toUpperCase(l);
+                case USERS_TAB:
+                    return getString(R.string.title_users).toUpperCase(l);
             }
             return null;
         }

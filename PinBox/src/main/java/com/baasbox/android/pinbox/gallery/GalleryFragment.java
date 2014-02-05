@@ -1,25 +1,19 @@
 package com.baasbox.android.pinbox.gallery;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Toast;
-
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.view.*;
+import android.widget.GridView;
+import com.baasbox.android.pinbox.Contract;
 import com.baasbox.android.pinbox.R;
 import com.baasbox.android.pinbox.common.BaseFragment;
 import com.baasbox.android.pinbox.utils.Intents;
 import com.baasbox.android.pinbox.utils.Utils;
-
-import java.io.IOException;
 
 public class GalleryFragment extends BaseFragment {
     private final static String SAVE_PICTURE_URI = "save_picture";
@@ -36,6 +30,8 @@ public class GalleryFragment extends BaseFragment {
 
     private Uri mSavePictureUri;
     private OnImageChoosen mImageChoiceListener;
+    private GridView mGridView;
+    private GalleryAdapter mAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,8 +44,36 @@ public class GalleryFragment extends BaseFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_gallery, container, false);
+        mGridView = (GridView) v.findViewById(R.id.images_grid);
+        mAdapter = new GalleryAdapter(getActivity());
+        mGridView.setAdapter(mAdapter);
         return v;
     }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        getLoaderManager().initLoader(R.id.GALLERY_LOADER, null, loaderCallbacks);
+    }
+
+    private final LoaderManager.LoaderCallbacks<Cursor> loaderCallbacks =
+            new LoaderManager.LoaderCallbacks<Cursor>() {
+                @Override
+                public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+                    CursorLoader loader = new CursorLoader(getActivity(), Contract.Image.CONTENT_URI, null, null, null, null);
+                    return loader;
+                }
+
+                @Override
+                public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+                    mAdapter.swapCursor(cursor);
+                }
+
+                @Override
+                public void onLoaderReset(Loader<Cursor> cursorLoader) {
+                    mAdapter.swapCursor(null);
+                }
+            };
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
@@ -65,6 +89,7 @@ public class GalleryFragment extends BaseFragment {
                 mSavePictureUri = Utils.generateUniqueFileUri();
                 Intents.importPicture(this, IMPORT_IMAGE_REQUEST, getString(R.string.import_picture), mSavePictureUri);
                 break;
+            case R.id.refresh:
             default:
                 handled = false;
         }
@@ -82,6 +107,7 @@ public class GalleryFragment extends BaseFragment {
     public void setOnImageChoosenListener(OnImageChoosen imageChoosen){
         mImageChoiceListener = imageChoosen;
     }
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
