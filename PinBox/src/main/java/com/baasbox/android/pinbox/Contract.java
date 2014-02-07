@@ -20,6 +20,10 @@ public final class Contract {
         public static final String DIR_CONTENT_TYPE = ContentResolver.CURSOR_DIR_BASE_TYPE + "/vnd.pinbox,image";
         public static final String ITEM_CONTENT_TYPE = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/vnd.pinbox.image";
 
+        public static final int STATE_LOADING = 1;
+        public static final int STATE_DELETE = 2;
+        public static final int STATE_INSYNC = 0;
+
 
         public static final Uri imageByServerId(String serverId) {
             return Image.CONTENT_URI.buildUpon().appendPath("serverid").appendPath(serverId).build();
@@ -35,6 +39,7 @@ public final class Contract {
         public final static String _SERVER_ID = "_server_id";
         public final static String _DATA = "_data";
         public final static String _STATUS = "_status";
-        public static final String _TITLE = "title";
+        public static final String _TITLE = "_title";
+        public static final String _AUTHOR = "_author";
     }
 }

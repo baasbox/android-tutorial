@@ -19,6 +19,8 @@ import java.io.File;
 public class UploadImageService extends IntentService {
     private final static String TITLE_EXTRA = "title_extra_key";
     private final static String TAG = "UploadImageService";
+    private final static String PROVIDER_EXTRA = "provider_uri";
+
 
     private ContentResolver resolver;
 
@@ -30,19 +32,24 @@ public class UploadImageService extends IntentService {
         Intent intent = new Intent(context, UploadImageService.class);
         intent.setData(imageUri);
         intent.putExtra(TITLE_EXTRA, title);
+        Uri providerUri = insertIntoProvider(context.getContentResolver(), title, imageUri);
+        intent.putExtra(PROVIDER_EXTRA, providerUri);
         context.startService(intent);
     }
 
-    private Uri insertIntoProvider(String title, Uri contentUri) {
+    private static Uri insertIntoProvider(ContentResolver resolver, String title, Uri contentUri) {
         ContentValues values = new ContentValues();
         values.put(Contract.Image._DATA, contentUri.toString());
         values.put(Contract.Image._TITLE, title);
+        values.put(Contract.Image._STATUS, Contract.Image.STATE_LOADING);
         return resolver.insert(Contract.Image.CONTENT_URI, values);
     }
 
     private void updateImageState(Uri target, String serverId) {
         ContentValues values = new ContentValues();
         values.put(Contract.Image._SERVER_ID, serverId);
+        values.put(Contract.Image._AUTHOR, BaasUser.current().getName());
+        values.put(Contract.Image._STATUS, Contract.Image.STATE_INSYNC);
         resolver.update(target, values, null, null);
     }
 
@@ -56,21 +63,18 @@ public class UploadImageService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         String title = intent.getStringExtra(TITLE_EXTRA);
         Uri uri = intent.getData();
-
-        Utils.logStep("INSERTING " + uri);
-        Uri providerUri = insertIntoProvider(title, uri);
-        Utils.logStep("INSERTED " + providerUri);
+        Uri providerUri = intent.getParcelableExtra(PROVIDER_EXTRA);
 
         File media = Utils.getMediaFile(this, uri);
 
         BaasACL acl = new BaasACL();
         acl.grantRoles(Grant.READ, Role.friendsOf(BaasUser.current().getName()));
-        BaasFile file;
+
+        JsonObject attachedData = new JsonObject().putBoolean("profile", false);
         if (title != null) {
-            file = new BaasFile(new JsonObject().putString("title", title));
-        } else {
-            file = new BaasFile();
+            attachedData.putString("title", title);
         }
+        BaasFile file = new BaasFile(attachedData);
         Utils.logStep("UPLOADING");
         BaasResult<BaasFile> res = file.uploadSync(acl, media);
         if (res.isSuccess()) {

@@ -9,6 +9,7 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import com.baasbox.android.BaasHandler;
@@ -20,6 +21,7 @@ import com.baasbox.android.pinbox.gallery.GalleryFragment;
 import com.baasbox.android.pinbox.gallery.UploadFragment;
 import com.baasbox.android.pinbox.login.LoginActivity;
 import com.baasbox.android.pinbox.profile.ProfileFragment;
+import com.baasbox.android.pinbox.service.RefreshService;
 import com.baasbox.android.pinbox.service.UploadImageService;
 import com.baasbox.android.pinbox.users.UserListFragment;
 
@@ -50,7 +52,6 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
     ViewPager mViewPager;
 
     private RequestToken logout;
-    private RequestToken uploadToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,18 +59,12 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         //todo check login
         if (BaasUser.current() == null || !BaasUser.current().isAuthentcated()) {
             startLoginScreen();
+            return;
         }
-//        if (!BaasAccount.isUserLoggedIn(PinBox.getBaasBox())) {
-//            startLoginScreen();
-//            return;
-//        }
         setContentView(R.layout.activity_main);
-        // Set up the action bar.
         final ActionBar actionBar = getSupportActionBar();
         actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 
-        // Create the adapter that will return a fragment for each of the three
-        // primary sections of the activity.
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
 
         // Set up the ViewPager with the sections adapter.
@@ -97,39 +92,36 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
                             .setText(mSectionsPagerAdapter.getPageTitle(i))
                             .setTabListener(this));
         }
+
+        if (savedInstanceState == null) {
+            RefreshService.doRefresh(this);
+        }
     }
 
     @Override
     public void onAttachFragment(Fragment fragment) {
         super.onAttachFragment(fragment);
-        if (fragment instanceof GalleryFragment){
+        if (fragment instanceof GalleryFragment) {
             ((GalleryFragment) fragment).setOnImageChoosenListener(new GalleryFragment.OnImageChoosen() {
                 @Override
                 public void onImageChoosen(Uri imageUri) {
-                    UploadFragment.show(getSupportFragmentManager(),imageUri);
+                    UploadFragment.show(getSupportFragmentManager(), imageUri, false);
                 }
             });
-        } else if(fragment instanceof UploadFragment){
+        } else if (fragment instanceof UploadFragment) {
             ((UploadFragment) fragment).setOnUploadConfirmedListener(new UploadFragment.OnUploadConfirmedListener() {
                 @Override
                 public void onUploadConfirmed(Uri imageUri, String title) {
                     UploadImageService.saveAnduploadImage(MainActivity.this, imageUri, title);
                 }
             });
-//            ((UploadFragment) fragment).setOnUploadConfirmedListener(new UploadFragment.OnUploadConfirmedListener() {
-//                @Override
-//                public void onUploadConfirmed(Uri imageUri,String title) {
-//                    UploadImageService.uploadImage(MainActivity.this,imageUri,title);
-//
-//                };
-//            });
         }
     }
-
 
     void onLogout() {
         PinBox.getSyncTimeManager().resetSyncTime();
         getContentResolver().delete(Contract.Image.CONTENT_URI, null, null);
+        startLoginScreen();
     }
 
     private void startLoginScreen() {
@@ -174,8 +166,6 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         super.onPause();
         if (logout != null)
             logout.suspend();
-        if (uploadToken != null)
-            uploadToken.suspend();
     }
 
     @Override
@@ -189,6 +179,8 @@ public class MainActivity extends BaseActivity implements ActionBar.TabListener 
         public void handle(BaasResult<Void> result) {
             if (result.isSuccess()) {
                 onLogout();
+            } else {
+                Log.d("LOG_TAG", "failed logout " + result.error().getMessage());
             }
             logout = null;
         }

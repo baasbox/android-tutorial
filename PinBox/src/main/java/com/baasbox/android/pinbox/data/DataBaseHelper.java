@@ -11,7 +11,7 @@ import com.baasbox.android.pinbox.Contract;
  */
 final class DataBaseHelper extends SQLiteOpenHelper {
     private final static String DATABASE_NAME = "instabox.db";
-    private final static int DATABASE_VERSION = 11;
+    private final static int DATABASE_VERSION = 13;
     private final static SQLiteDatabase.CursorFactory CURSOR_FACTORY = null;
 
     final static UriMatcher MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
@@ -30,7 +30,8 @@ final class DataBaseHelper extends SQLiteOpenHelper {
                     "(" + Contract.Image._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + Contract.Image._SERVER_ID + " TEXT,"
                     + Contract.Image._TITLE + " TEXT,"
-                    + Contract.Image._DATA + " TEXT,"
+                    + Contract.Image._DATA + " TEXT, "
+                    + Contract.Image._AUTHOR + " TEXT, "
                     + Contract.Image._STATUS + " INTEGER)";
 
     private final static String DROP_IMAGE_TABLE =

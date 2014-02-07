@@ -15,10 +15,8 @@ public class PinBox extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
         BaasBox.Config config = new BaasBox.Config();
         config.HTTPS = false;
-
         config.API_DOMAIN = "pinboxapi.baasbox.com";//"192.168.56.1";
         config.APP_CODE = "123PinBox456";/*"1234567890";*/
         syncTimeManager = new SyncTimeManager(this);

@@ -12,6 +12,7 @@ import android.widget.GridView;
 import com.baasbox.android.pinbox.Contract;
 import com.baasbox.android.pinbox.R;
 import com.baasbox.android.pinbox.common.BaseFragment;
+import com.baasbox.android.pinbox.service.RefreshService;
 import com.baasbox.android.pinbox.utils.Intents;
 import com.baasbox.android.pinbox.utils.Utils;
 
@@ -19,7 +20,7 @@ public class GalleryFragment extends BaseFragment {
     private final static String SAVE_PICTURE_URI = "save_picture";
     private final static int IMPORT_IMAGE_REQUEST = 2;
 
-    public static interface OnImageChoosen{
+    public static interface OnImageChoosen {
         public void onImageChoosen(Uri imageUri);
     }
 
@@ -90,6 +91,7 @@ public class GalleryFragment extends BaseFragment {
                 Intents.importPicture(this, IMPORT_IMAGE_REQUEST, getString(R.string.import_picture), mSavePictureUri);
                 break;
             case R.id.refresh:
+                startRefresh();
             default:
                 handled = false;
         }
@@ -104,21 +106,26 @@ public class GalleryFragment extends BaseFragment {
         }
     }
 
-    public void setOnImageChoosenListener(OnImageChoosen imageChoosen){
+    private void startRefresh() {
+        RefreshService.doRefresh(getActivity());
+    }
+
+    public void setOnImageChoosenListener(OnImageChoosen imageChoosen) {
         mImageChoiceListener = imageChoosen;
     }
 
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == IMPORT_IMAGE_REQUEST) {
             Uri imageUri = Intents.processImageResult(resultCode, data, mSavePictureUri);
-            if (imageUri!=null){
-                if (mImageChoiceListener!=null){
+            if (imageUri != null) {
+                if (mImageChoiceListener != null) {
                     mImageChoiceListener.onImageChoosen(imageUri);
                 }
             }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
         }
     }
 }

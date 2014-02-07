@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.provider.BaseColumns;
 import android.support.v4.database.DatabaseUtilsCompat;
+import android.util.Log;
 
 import java.io.FileNotFoundException;
 import java.util.Locale;
@@ -102,15 +103,29 @@ public class PinboxProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
+        String where;
         switch (MATCHER.match(uri)) {
             case MATCH_ONE_IMAGE:
+                where = concatWhereId(ContentUris.parseId(uri), selection);
                 break;
             case MATCH_ONE_FROM_SERVER:
+                UUID uuid = ensureServerId(uri);
+                if (uuid == null) throw unsupportedUri("delete", uri);
+                where = concatWhereServerId(uuid, selection);
+                break;
+            case MATCH_ALL_IMAGES:
+                where = selection;
                 break;
             default:
                 throw unsupportedUri("delete", uri);
         }
-        return 0;
+        SQLiteDatabase db = mDB.getWritableDatabase();
+        int count = db.delete(Image.PATH, where, selectionArgs);
+        if (count > 0) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+        Log.d("REFRESH", "due to logout" + count);
+        return count;
     }
 
     @Override

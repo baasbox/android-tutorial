@@ -4,15 +4,24 @@
               android:orientation="vertical"
               android:layout_width="match_parent"
               android:layout_height="match_parent">
+
     <ImageView
             android:layout_gravity="center_horizontal"
             android:id="@+id/item_thumb"
-            android:layout_width="200dp"
-            android:layout_height="200dp"/>
-    <TextView
+            android:layout_width="120dp"
+            android:layout_height="120dp"/>
 
+    <TextView
             android:layout_gravity="center_horizontal"
             android:id="@+id/item_title"
-            android:layout_width="200dp"
+            android:layout_width="120dp"
+            android:gravity="center_horizontal"
             android:layout_height="wrap_content"/>
+
+    <TextView
+            android:id="@+id/item_author"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"/>
 </LinearLayout>
