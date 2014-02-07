@@ -16,14 +16,12 @@ public class PinBox extends Application {
     public void onCreate() {
         super.onCreate();
         BaasBox.Config config = new BaasBox.Config();
-        config.HTTPS = false;
-        config.API_DOMAIN = "pinboxapi.baasbox.com";//"192.168.56.1";
-        config.APP_CODE = "123PinBox456";/*"1234567890";*/
+        config.apiDomain = "192.168.56.1";//"192.168.56.1";
+        config.httpPort = 9000;
         syncTimeManager = new SyncTimeManager(this);
         box = BaasBox.initDefault(this, config);
     }
 
-    //todo obtain the app client
     public static BaasBox getBaasBox() {
         return box;
     }
